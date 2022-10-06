@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"runtime"
 	"strconv"
 	"strings"
 )
@@ -12,10 +11,10 @@ func exploreSymbol(fileContent string) []string {
 	nixSep := "\n"
 	windowsSep := "\r\n"
 	var lines []string
-	if runtime.GOOS != "windows" {
-		lines = strings.Split(fileContent, nixSep)
-	} else {
+	if strings.Contains(fileContent, windowsSep) {
 		lines = strings.Split(fileContent, windowsSep)
+	} else {
+		lines = strings.Split(fileContent, nixSep)
 	}
 	for i := 0; i < len(lines); i++ {
 		lines[i] = strings.ReplaceAll(lines[i], " ", "")
@@ -67,11 +66,12 @@ func parseAInstruction(assemblyInstruction string) Instruction {
 	if address, err := strconv.Atoi(assemblyInstruction[1:]); err == nil {
 		return Instruction(address)
 	}
-	if address, ok := SymbolMap[assemblyInstruction[1:]]; ok {
+	var symbol string = assemblyInstruction[1:]
+	if address, ok := SymbolMap[symbol]; ok {
 		return Instruction(address)
 	}
 	address := AvailableRamPos
-	SymbolMap[assemblyInstruction[1:]] = address
+	SymbolMap[symbol] = address
 	AvailableRamPos++
 	return Instruction(address)
 }
@@ -94,6 +94,7 @@ func parseCInstruction(assemblyInstruction string) (Instruction, error) {
 		return Instruction(-1), err
 	}
 	destAndComp := strings.Split(compPhrase, "=")
+	var instruction Instruction = 0b111 << 13
 	if len(destAndComp) == 1 {
 		computation = destAndComp[0]
 	} else if len(destAndComp) == 2 {
@@ -102,11 +103,14 @@ func parseCInstruction(assemblyInstruction string) (Instruction, error) {
 	} else {
 		return Instruction(-1), err
 	}
-	jumpInt := JumpMap[jumpPhrase]
-	compInt := ComputationMap[computation]
-	destInt := DestinationMap[destination]
-	instruction := jumpInt + destInt<<3 + compInt<<6 + 0b111<<13
-	return Instruction(instruction), nil
+	if jumpInt, ok := JumpMap[jumpPhrase]; ok {
+		instruction += Instruction(jumpInt)
+	}
+	if destInt, ok := DestinationMap[destination]; ok {
+		instruction += Instruction(destInt << 3)
+	}
+	instruction += Instruction(ComputationMap[computation] << 6)
+	return instruction, nil
 }
 
 func ToMachineCode(instructions []Instruction) []string {

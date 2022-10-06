@@ -3,7 +3,7 @@ package main
 var AvailableRamPos int = 16
 
 var SymbolMap = map[string]int{
-	"RO":     0,
+	"R0":     0,
 	"R1":     1,
 	"R2":     2,
 	"R3":     3,
@@ -31,7 +31,7 @@ var SymbolMap = map[string]int{
 var DestinationMap = map[string]int{
 	"M":   0b001,
 	"D":   0b010,
-	"DM":  0b011,
+	"MD":  0b011,
 	"A":   0b100,
 	"AM":  0b101,
 	"AD":  0b110,
@@ -49,18 +49,18 @@ var JumpMap = map[string]int{
 }
 
 var ComputationMap = map[string]int{
-	"0": 0b0101010,
-	"1": 0b0111111,
-	"-1": 0b0111010,
-	"D": 0b0001100,
-	"A": 0b0110000,
-	"M": 0b1110000,
-	"!D": 0b0001101,
-	"!A": 0b0110001,
-	"!M": 0b1110001,
-	"-D": 0b0001111,
-	"-A": 0b0110011,
-	"-M": 0b1110011,
+	"0":   0b0101010,
+	"1":   0b0111111,
+	"-1":  0b0111010,
+	"D":   0b0001100,
+	"A":   0b0110000,
+	"M":   0b1110000,
+	"!D":  0b0001101,
+	"!A":  0b0110001,
+	"!M":  0b1110001,
+	"-D":  0b0001111,
+	"-A":  0b0110011,
+	"-M":  0b1110011,
 	"D+1": 0b0011111,
 	"A+1": 0b0110111,
 	"M+1": 0b1110111,
