@@ -1,7 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"os"
+)
 
 func main() {
-	fmt.Println("Hello, World")
+	if len(os.Args) != 3 {
+		panic("Invalid argument")
+	}
+	bytes := OpenFile(os.Args[1])
+	instructions := Parse(bytes)
+	WriteFile(os.Args[2], ToMachineCode(instructions))
 }

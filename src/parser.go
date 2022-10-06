@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -10,27 +12,30 @@ func exploreSymbol(fileContent string) []string {
 	nixSep := "\n"
 	windowsSep := "\r\n"
 	var lines []string
-	if strings.Contains(fileContent, nixSep) {
+	if runtime.GOOS != "windows" {
 		lines = strings.Split(fileContent, nixSep)
 	} else {
 		lines = strings.Split(fileContent, windowsSep)
 	}
-	for i := 0; i <= len(lines); i++ {
+	for i := 0; i < len(lines); i++ {
 		lines[i] = strings.ReplaceAll(lines[i], " ", "")
-		if lines[i] == "" {
+		if lines[i] == "" || strings.HasPrefix(lines[i], "//") {
 			lines = append(lines[:i], lines[i+1:]...)
-			i--
+			i -= 1
+		} else if strings.Contains(lines[i], "//") {
+			index := strings.Index(lines[i], "//")
+			lines[i] = lines[i][:index]
 		}
 	}
-	for i := 0; i <= len(lines); i++ {
+	for i := 0; i < len(lines); i++ {
 		if strings.HasPrefix(lines[i], "(") && strings.HasSuffix(lines[i], ")") {
-			symbol := lines[1][1 : len(lines[1])-1]
+			symbol := lines[i][1 : len(lines[i])-1]
 			if _, ok := SymbolMap[symbol]; ok {
 				panic("re-declaring is not allowed - line " + strconv.Itoa(i))
 			}
 			SymbolMap[symbol] = i
 			lines = append(lines[:i], lines[i+1:]...)
-			i--
+			i -= 1
 		}
 	}
 	return lines
@@ -45,7 +50,7 @@ func Parse(bytes []byte) []Instruction {
 		if err != nil {
 			panic("Invalid instruction " + strconv.Itoa(i))
 		}
-		instructions = append(instructions, ins)
+		instructions[i] = ins
 	}
 	return instructions
 }
@@ -91,9 +96,9 @@ func parseCInstruction(assemblyInstruction string) (Instruction, error) {
 	destAndComp := strings.Split(compPhrase, "=")
 	if len(destAndComp) == 1 {
 		computation = destAndComp[0]
-	} else if len(compAndJump) == 2 {
-		computation = destAndComp[0]
-		destination = destAndComp[1]
+	} else if len(destAndComp) == 2 {
+		destination = destAndComp[0]
+		computation = destAndComp[1]
 	} else {
 		return Instruction(-1), err
 	}
@@ -102,4 +107,12 @@ func parseCInstruction(assemblyInstruction string) (Instruction, error) {
 	destInt := DestinationMap[destination]
 	instruction := jumpInt + destInt<<3 + compInt<<6 + 0b111<<13
 	return Instruction(instruction), nil
+}
+
+func ToMachineCode(instructions []Instruction) []string {
+	lines := make([]string, len(instructions))
+	for i, ins := range instructions {
+		lines[i] = fmt.Sprintf("%016b\n", int(ins))
+	}
+	return lines
 }
