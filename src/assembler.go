@@ -40,7 +40,7 @@ func exploreSymbol(fileContent string) []string {
 	return lines
 }
 
-func Parse(bytes []byte) []Instruction {
+func Assemble(bytes []byte) []Instruction {
 	byteString := string(bytes)
 	trimmedSpaceString := exploreSymbol(byteString)
 	instructions := make([]Instruction, len(trimmedSpaceString))
@@ -113,7 +113,7 @@ func parseCInstruction(assemblyInstruction string) (Instruction, error) {
 	return instruction, nil
 }
 
-func ToMachineCode(instructions []Instruction) []string {
+func ToBinaryRepresentation(instructions []Instruction) []string {
 	lines := make([]string, len(instructions))
 	for i, ins := range instructions {
 		lines[i] = fmt.Sprintf("%016b\n", int(ins))

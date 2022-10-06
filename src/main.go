@@ -9,6 +9,6 @@ func main() {
 		panic("Invalid argument")
 	}
 	bytes := OpenFile(os.Args[1])
-	instructions := Parse(bytes)
-	WriteFile(os.Args[2], ToMachineCode(instructions))
+	instructions := Assemble(bytes)
+	WriteFile(os.Args[2], ToBinaryRepresentation(instructions))
 }
