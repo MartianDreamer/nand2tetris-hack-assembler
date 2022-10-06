@@ -1,21 +1,10 @@
 package main
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 )
-
-type InstructionType int
-
-const (
-	TypeA InstructionType = 0
-	TypeC
-)
-
-type Instruction struct {
-	Type     InstructionType
-	Elements []string
-}
 
 func exploreSymbol(fileContent string) []string {
 	nixSep := "\n"
@@ -37,9 +26,9 @@ func exploreSymbol(fileContent string) []string {
 		if strings.HasPrefix(lines[i], "(") && strings.HasSuffix(lines[i], ")") {
 			symbol := lines[1][1 : len(lines[1])-1]
 			if _, ok := SymbolMap[symbol]; ok {
-				panic("re-declaring is not allowed - line " + string(i))
+				panic("re-declaring is not allowed - line " + strconv.Itoa(i))
 			}
-			SymbolMap[symbol] = int64(i)
+			SymbolMap[symbol] = i
 			lines = append(lines[:i], lines[i+1:]...)
 			i--
 		}
@@ -47,17 +36,70 @@ func exploreSymbol(fileContent string) []string {
 	return lines
 }
 
-func Parse(bytes []byte) (rs []Instruction) {
-	return nil
+func Parse(bytes []byte) []Instruction {
+	byteString := string(bytes)
+	trimmedSpaceString := exploreSymbol(byteString)
+	instructions := make([]Instruction, len(trimmedSpaceString))
+	for i, line := range trimmedSpaceString {
+		ins, err := parseLine(line)
+		if err != nil {
+			panic("Invalid instruction " + strconv.Itoa(i))
+		}
+		instructions = append(instructions, ins)
+	}
+	return instructions
 }
 
-func parseline(assemblyInstruction string) Instruction {
+func parseLine(assemblyInstruction string) (Instruction, error) {
 	if assemblyInstruction[0] == '@' {
-		address, err := strconv.Atoi(assemblyInstruction[1:])
-		if err != nil {
-			panic("invalid instruction")
-		}
-		return Instruction{TypeA, []string{strconv.FormatInt(int64(address), 2)}}
+		return parseAInstruction(assemblyInstruction), nil
 	}
-	return Instruction{}
+	return parseCInstruction(assemblyInstruction)
+
+}
+
+func parseAInstruction(assemblyInstruction string) Instruction {
+	if address, err := strconv.Atoi(assemblyInstruction[1:]); err == nil {
+		return Instruction(address)
+	}
+	if address, ok := SymbolMap[assemblyInstruction[1:]]; ok {
+		return Instruction(address)
+	}
+	address := AvailableRamPos
+	SymbolMap[assemblyInstruction[1:]] = address
+	AvailableRamPos++
+	return Instruction(address)
+}
+
+func parseCInstruction(assemblyInstruction string) (Instruction, error) {
+	compAndJump := strings.Split(assemblyInstruction, ";")
+	err := errors.New("invalid instruction")
+	var (
+		compPhrase  string
+		jumpPhrase  string
+		computation string
+		destination string
+	)
+	if len(compAndJump) == 1 {
+		compPhrase = compAndJump[0]
+	} else if len(compAndJump) == 2 {
+		compPhrase = compAndJump[0]
+		jumpPhrase = compAndJump[1]
+	} else {
+		return Instruction(-1), err
+	}
+	destAndComp := strings.Split(compPhrase, "=")
+	if len(destAndComp) == 1 {
+		computation = destAndComp[0]
+	} else if len(compAndJump) == 2 {
+		computation = destAndComp[0]
+		destination = destAndComp[1]
+	} else {
+		return Instruction(-1), err
+	}
+	jumpInt := JumpMap[jumpPhrase]
+	compInt := ComputationMap[computation]
+	destInt := DestinationMap[destination]
+	instruction := jumpInt + destInt<<3 + compInt<<6 + 0b111<<13
+	return Instruction(instruction), nil
 }
