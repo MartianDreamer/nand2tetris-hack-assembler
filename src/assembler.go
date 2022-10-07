@@ -7,9 +7,15 @@ import (
 	"strings"
 )
 
+const (
+	commentMark                 = "//"
+	nixSep                      = "\n"
+	windowsSep                  = "\r\n"
+	binaryRepresentationPattern = "%016b\n"
+)
+
 func exploreSymbol(fileContent string) []string {
-	nixSep := "\n"
-	windowsSep := "\r\n"
+
 	var lines []string
 	if strings.Contains(fileContent, windowsSep) {
 		lines = strings.Split(fileContent, windowsSep)
@@ -18,11 +24,11 @@ func exploreSymbol(fileContent string) []string {
 	}
 	for i := 0; i < len(lines); i++ {
 		lines[i] = strings.ReplaceAll(lines[i], " ", "")
-		if lines[i] == "" || strings.HasPrefix(lines[i], "//") {
+		if lines[i] == "" || strings.HasPrefix(lines[i], commentMark) {
 			lines = append(lines[:i], lines[i+1:]...)
 			i -= 1
-		} else if strings.Contains(lines[i], "//") {
-			index := strings.Index(lines[i], "//")
+		} else if strings.Contains(lines[i], commentMark) {
+			index := strings.Index(lines[i], commentMark)
 			lines[i] = lines[i][:index]
 		}
 	}
@@ -116,7 +122,7 @@ func parseCInstruction(assemblyInstruction string) (Instruction, error) {
 func ToBinaryRepresentation(instructions []Instruction) []string {
 	lines := make([]string, len(instructions))
 	for i, ins := range instructions {
-		lines[i] = fmt.Sprintf("%016b\n", int(ins))
+		lines[i] = fmt.Sprintf(binaryRepresentationPattern, int(ins))
 	}
 	return lines
 }
