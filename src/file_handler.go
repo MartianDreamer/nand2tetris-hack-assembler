@@ -18,4 +18,5 @@ func WriteFile(path string, content []string) {
 	for _, line := range content {
 		file.WriteString(line)
 	}
+	file.Close()
 }
